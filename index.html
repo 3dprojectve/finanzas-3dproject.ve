@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3dproject.ve | Suite Financiera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Librerías para generación de PDF y Gráficos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --velvet-green: #1B3022;
+            --velvet-green-light: #2D4A36;
+            --velvet-green-soft: #385541;
+            --gold-accent: #C5A059;
+            --cream-white: #FDFCF8;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--velvet-green);
+            color: var(--cream-white);
+            min-height: screen;
+        }
+        .bg-velvet-dark { background-color: var(--velvet-green); }
+        .bg-velvet-card { background-color: var(--velvet-green-light); }
+        
+        .btn-gold {
+            background-color: var(--gold-accent);
+            color: var(--velvet-green);
+            font-weight: 800;
+            transition: all 0.3s ease;
+        }
+        .btn-gold:hover {
+            background-color: #d4ae6a;
+            transform: translateY(-1px);
+        }
+        
+        .card-pro {
+            background: var(--velvet-green-light);
+            border: 1px solid rgba(197, 160, 89, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-link {
+            position: relative;
+            padding-bottom: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            color: rgba(253, 252, 248, 0.5);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+        }
+        .nav-link.active {
+            color: var(--gold-accent);
+            border-bottom: 3px solid var(--gold-accent);
+        }
+
+        /* Inputs Estilo Dark */
+        input, select, textarea {
+            background-color: rgba(27, 48, 34, 0.6) !important;
+            border: 1px solid var(--velvet-green-soft) !important;
+            border-radius: 10px;
+            padding: 10px 14px;
+            outline: none;
+            color: white !important;
+        }
+        input:focus {
+            border-color: var(--gold-accent) !important;
+            box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.1);
+        }
+
+        .brecha-badge {
+            background-color: var(--gold-accent);
+            color: var(--velvet-green);
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 900;
+        }
+
+        input[type=range] { -webkit-appearance: none; background: var(--velvet-green-soft); height: 6px; border-radius: 5px; width: 100%; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 22px;
+            width: 22px;
+            border-radius: 50%;
+            background: var(--gold-accent);
+            cursor: pointer;
+            border: 3px solid var(--velvet-green);
+        }
+
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold-accent);
+            color: var(--velvet-green);
+            padding: 12px 24px;
+            border-radius: 30px;
+            display: none;
+            z-index: 1000;
+            font-weight: 800;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Estilo para tablas en la web */
+        .web-table thead {
+            background-color: var(--velvet-green);
+            color: var(--gold-accent);
+        }
+        .web-table tr {
+            border-bottom: 1px solid rgba(197, 160, 89, 0.1);
+        }
+    </style>
+</head>
+<body class="pb-10">
+    <div id="toast" class="copy-toast">MONTO COPIADO ✓</div>
+    
+    <div id="app" class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+            <div class="text-center md:text-left">
+                <h1 class="text-5xl font-black tracking-tighter text-gold-accent uppercase italic">3dproject<span class="text-white">.ve</span></h1>
+                <p class="text-[10px] font-bold opacity-50 tracking-[0.4em] uppercase mt-1">Sistemas de Manufactura & Finanzas</p>
+            </div>
+            
+            <div class="flex gap-4 items-center bg-velvet-card p-5 rounded-2xl border border-white/5 shadow-2xl">
+                <div class="text-right">
+                    <p class="text-[9px] font-black uppercase text-gold-accent/60 mb-1">Tasa BCV</p>
+                    <input type="number" id="tasaBCV" value="48.50" step="0.01" class="w-20 text-right font-black text-sm border-none p-0 focus:ring-0 bg-transparent! shadow-none" oninput="updateExchangeData()">
+                </div>
+                <div class="h-10 w-px bg-white/10"></div>
+                <div class="text-right">
+                    <p class="text-[9px] font-black uppercase text-gold-accent/60 mb-1">Paralela</p>
+                    <input type="number" id="tasaParalela" value="56.20" step="0.01" class="w-20 text-right font-black text-sm border-none p-0 focus:ring-0 bg-transparent! shadow-none" oninput="updateExchangeData()">
+                </div>
+                <div class="h-10 w-px bg-white/10"></div>
+                <div class="text-center px-2">
+                    <p class="text-[9px] font-black uppercase text-gold-accent/60 mb-1">Brecha</p>
+                    <span id="brechaPerc" class="brecha-badge">0.0%</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="flex gap-10 border-b border-white/5 mb-10 overflow-x-auto pb-1 no-scrollbar">
+            <div onclick="switchTab('dashboard')" class="nav-link active" id="tab-dashboard">Dashboard</div>
+            <div onclick="switchTab('cotizador')" class="nav-link" id="tab-cotizador">Cotizador</div>
+            <div onclick="switchTab('finanzas')" class="nav-link" id="tab-finanzas">Libro Contable</div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- DASHBOARD SECTION -->
+            <section id="section-dashboard" class="space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="card-pro p-8 border-l-4 border-white">
+                        <p class="text-[10px] font-black uppercase text-white/40 mb-2 tracking-widest">Balance Neto Real</p>
+                        <h2 class="text-4xl font-black text-white" id="dash-flujoNeto">$0.00</h2>
+                    </div>
+                    <div class="card-pro p-8 border-l-4 border-gold-accent">
+                        <p class="text-[10px] font-black uppercase text-gold-accent mb-2 tracking-widest">Fondo Empresa (50%)</p>
+                        <h2 class="text-4xl font-black text-white" id="dash-fondo">$0.00</h2>
+                        <div class="w-full bg-white/5 h-1.5 mt-4 rounded-full overflow-hidden">
+                            <div class="bg-gold-accent h-full" style="width: 50%"></div>
+                        </div>
+                    </div>
+                    <div class="card-pro p-8 border-l-4 border-blue-400">
+                        <p class="text-[10px] font-black uppercase text-blue-400 mb-2 tracking-widest">Compra Material (10%)</p>
+                        <h2 class="text-4xl font-black text-white" id="dash-material">$0.00</h2>
+                        <div class="w-full bg-white/5 h-1.5 mt-4 rounded-full overflow-hidden">
+                            <div class="bg-blue-400 h-full" style="width: 10%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card-pro p-8 border-l-4 border-green-500 shadow-2xl">
+                        <p class="text-[10px] font-black uppercase text-green-400 mb-2 tracking-widest">Utilidad Personal (40%)</p>
+                        <h2 class="text-6xl font-black text-white" id="dash-utilidad">$0.00</h2>
+                        <p class="text-[10px] text-white/30 mt-4 font-medium uppercase italic">Monto libre para disposición inmediata.</p>
+                    </div>
+                    <div class="card-pro p-8 border-l-4 border-red-500 bg-red-900/10">
+                        <p class="text-[10px] font-black uppercase text-red-400 mb-2 tracking-widest">Protección de Brecha</p>
+                        <h2 class="text-6xl font-black text-red-300" id="dash-brecha">$0.00</h2>
+                        <p class="text-[10px] text-white/30 mt-4 font-medium uppercase tracking-tighter">Capital recuperado del diferencial cambiario.</p>
+                    </div>
+                </div>
+
+                <div class="card-pro p-8">
+                    <h3 class="font-black mb-8 text-[10px] uppercase tracking-[0.5em] text-white/20">Rendimiento Operativo (USD)</h3>
+                    <div class="h-64">
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COTIZADOR SECTION -->
+            <section id="section-cotizador" class="hidden space-y-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Configuración -->
+                    <div class="card-pro p-8 space-y-6">
+                        <h3 class="text-2xl font-black text-gold-accent italic uppercase tracking-tighter">Pieza de Producción</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-white/40 tracking-widest">Cliente</label>
+                                <input type="text" id="q-cliente" placeholder="Nombre..." oninput="calculateQuote()">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-white/40 tracking-widest">Proyecto</label>
+                                <input type="text" id="q-pieza" value="Pieza Personalizada" oninput="calculateQuote()">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-white/40 tracking-widest">Horas</label>
+                                <input type="number" id="q-horas" value="1" min="0" oninput="calculateQuote()" class="text-center font-bold">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-gold-accent tracking-widest">Minutos</label>
+                                <input type="number" id="q-minutos" value="30" min="0" max="59" oninput="calculateQuote()" class="text-center font-bold border-gold-accent!">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-white/40 tracking-widest">Gramos</label>
+                                <input type="number" id="q-gramos" value="25" min="1" oninput="calculateQuote()" class="text-center font-bold">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-white/40 tracking-widest">Material</label>
+                                <select id="q-material" onchange="calculateQuote()" class="font-bold">
+                                    <option value="PLA">PLA</option>
+                                    <option value="PETG">PETG</option>
+                                    <option value="ABS">ABS</option>
+                                    <option value="TPU">TPU</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-6 border-t border-white/5 pt-6">
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-white/40 tracking-widest">Filamento $/kg</label>
+                                <input type="number" id="q-costoMaterial" value="25.00" oninput="calculateQuote()" class="font-bold text-center">
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[9px] font-black uppercase mb-2 text-gold-accent tracking-widest">Empaque $</label>
+                                <input type="number" id="q-empaque" value="0.50" oninput="calculateQuote()" class="font-bold text-center border-gold-accent!">
+                            </div>
+                        </div>
+                        <div class="bg-black/20 p-6 rounded-2xl border border-white/5">
+                            <div class="flex justify-between items-center mb-4">
+                                <label class="text-[9px] font-black uppercase text-gold-accent tracking-[0.2em]">Porcentaje Utilidad</label>
+                                <span class="bg-gold-accent text-velvet text-xs px-3 py-1 rounded-full font-black"><span id="ganancia-val">100</span>%</span>
+                            </div>
+                            <input type="range" id="q-ganancia" min="10" max="300" value="100" oninput="calculateQuote()">
+                        </div>
+                    </div>
+
+                    <!-- Resumen -->
+                    <div class="space-y-6">
+                        <div class="card-pro p-10 bg-black/40 border-gold-accent border-2 relative overflow-hidden">
+                            <div class="absolute -top-20 -right-20 w-60 h-60 bg-gold-accent/5 rounded-full blur-3xl"></div>
+                            
+                            <p class="text-xs font-black uppercase tracking-[0.3em] mb-4 text-gold-accent text-center">Presupuesto Sugerido (BCV)</p>
+                            <h2 class="text-7xl font-black text-white mb-10 text-center tracking-tighter" id="res-finalUSDBCV">$0.00</h2>
+                            
+                            <div class="space-y-6 mb-10 border-t border-white/10 pt-8">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-xs font-bold uppercase text-white/40 tracking-widest italic">A cobrar en BS:</p>
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-black text-3xl text-gold-accent" id="res-finalVES">Bs. 0.00</span>
+                                        <button onclick="copyToClipboard()" class="p-2 bg-gold-accent text-velvet rounded-xl hover:scale-110 transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-3 gap-4 text-center border-t border-white/5 pt-6">
+                                    <div class="bg-white/5 p-3 rounded-xl">
+                                        <p class="text-[8px] font-black uppercase text-gold-accent/60 mb-1">Fondo (50%)</p>
+                                        <span class="text-sm font-black text-white" id="pre-fondo">--</span>
+                                    </div>
+                                    <div class="bg-white/5 p-3 rounded-xl">
+                                        <p class="text-[8px] font-black uppercase text-blue-400/60 mb-1">Mat. (10%)</p>
+                                        <span class="text-sm font-black text-white" id="pre-material">--</span>
+                                    </div>
+                                    <div class="bg-white/5 p-3 rounded-xl">
+                                        <p class="text-[8px] font-black uppercase text-green-400/60 mb-1">Tuyo (40%)</p>
+                                        <span class="text-sm font-black text-white" id="pre-ganancia">--</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onclick="generatePDF()" class="w-full btn-gold py-5 rounded-2xl flex items-center justify-center space-x-4 shadow-xl uppercase tracking-widest text-sm transform active:scale-95">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <span>Descargar Cotización PDF</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FINANZAS SECTION -->
+            <section id="section-finanzas" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card-pro p-8 space-y-6">
+                        <h4 class="text-xl font-black text-gold-accent uppercase italic tracking-tighter">Añadir Movimiento</h4>
+                        <div class="space-y-4">
+                            <div class="flex flex-col">
+                                <label class="text-[10px] font-black uppercase mb-2 text-white/40 tracking-widest">Concepto</label>
+                                <input type="text" id="f-desc" placeholder="Ej: Venta 20 llaveros" class="font-bold">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] font-black uppercase mb-2 text-white/40 tracking-widest">Monto (USD)</label>
+                                    <input type="number" id="f-monto" placeholder="0.00" step="0.01" class="font-black text-lg">
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-[10px] font-black uppercase mb-2 text-white/40 tracking-widest">Categoría</label>
+                                    <select id="f-tipo" class="font-black uppercase text-[10px]">
+                                        <option value="venta">Venta (+)</option>
+                                        <option value="gasto">Gasto (-)</option>
+                                        <option value="insumo">Insumo (-)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <label class="text-[10px] font-black uppercase mb-2 text-white/40 tracking-widest">Método</label>
+                                <select id="f-metodo" class="font-bold">
+                                    <option value="Dólares Efectivo">Dólares Efectivo</option>
+                                    <option value="Binance">Binance</option>
+                                    <option value="Zelle">Zelle</option>
+                                    <option value="Bolívares (BCV)">Bolívares (BCV)</option>
+                                </select>
+                            </div>
+                            <button onclick="addMovimiento()" class="w-full btn-gold py-4 rounded-xl font-black uppercase tracking-widest text-xs mt-4">
+                                Confirmar Registro
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-pro p-8 flex flex-col">
+                        <h3 class="text-xl font-black text-white mb-6 uppercase tracking-tighter italic">Historial Libro Contable</h3>
+                        <div class="overflow-y-auto max-h-[450px] no-scrollbar">
+                            <table class="w-full text-left text-sm web-table">
+                                <thead class="sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-3 text-[9px] font-black uppercase tracking-widest">Detalle</th>
+                                        <th class="p-3 text-right text-[9px] font-black uppercase tracking-widest">Monto</th>
+                                        <th class="p-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="f-tabla" class="divide-y divide-white/5"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="mt-20 pt-10 border-t border-white/5 text-center text-white/20 text-[9px] font-bold uppercase tracking-[0.8em]">
+            3dproject.ve | High Fidelity Finance | 2026
+        </footer>
+    </div>
+
+    <script>
+        // PEGA TU LOGO EN BASE64 AQUÍ
+        const logoBase64 = ""; 
+
+        let historial = [];
+        let balanceChart;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('nav .nav-link').forEach(n => n.classList.remove('active'));
+            const section = document.getElementById('section-' + tabId);
+            const tab = document.getElementById('tab-' + tabId);
+            if(section) section.classList.remove('hidden');
+            if(tab) tab.classList.add('active');
+            if (tabId === 'dashboard') updateDashboard();
+        }
+
+        function updateExchangeData() {
+            const bcv = parseFloat(document.getElementById('tasaBCV').value) || 1;
+            const para = parseFloat(document.getElementById('tasaParalela').value) || 1;
+            const brecha = ((para / bcv) - 1) * 100;
+            const bperc = document.getElementById('brechaPerc');
+            if (bperc) bperc.innerText = brecha.toFixed(1) + '%';
+            calculateQuote();
+        }
+
+        function calculateQuote() {
+            const bcv = parseFloat(document.getElementById('tasaBCV').value) || 1;
+            const para = parseFloat(document.getElementById('tasaParalela').value) || 1;
+            const h = parseFloat(document.getElementById('q-horas').value) || 0;
+            const m = parseFloat(document.getElementById('q-minutos').value) || 0;
+            const g = parseFloat(document.getElementById('q-gramos').value) || 0;
+            const matKg = parseFloat(document.getElementById('q-costoMaterial').value) || 0;
+            const pkg = parseFloat(document.getElementById('q-empaque').value) || 0;
+            const gan = parseFloat(document.getElementById('q-ganancia').value) || 0;
+
+            const ganVal = document.getElementById('ganancia-val');
+            if (ganVal) ganVal.innerText = gan;
+
+            const totalHours = h + (m / 60);
+            const costProd = ((g / 1000) * matKg) + (totalHours * 0.65);
+            const costBase = costProd + pkg;
+            
+            const priceUSDRepo = costBase * (1 + (gan / 100));
+            const priceVES = priceUSDRepo * para;
+            const priceFacturaUSD = priceVES / bcv;
+
+            // Mostrar en Números Blancos/Oro
+            document.getElementById('res-finalVES').innerText = 'Bs. ' + priceVES.toLocaleString('de-DE', { minimumFractionDigits: 2 });
+            document.getElementById('res-finalUSDBCV').innerText = `$${priceFacturaUSD.toFixed(2)}`;
+
+            document.getElementById('pre-fondo').innerText = `$${(priceFacturaUSD * 0.50).toFixed(2)}`;
+            document.getElementById('pre-material').innerText = `$${(priceFacturaUSD * 0.10).toFixed(2)}`;
+            document.getElementById('pre-ganancia').innerText = `$${(priceFacturaUSD * 0.40).toFixed(2)}`;
+        }
+
+        function addMovimiento() {
+            const desc = document.getElementById('f-desc').value;
+            const montoUSD = parseFloat(document.getElementById('f-monto').value);
+            const tipo = document.getElementById('f-tipo').value;
+            const metodo = document.getElementById('f-metodo').value;
+            const bcv = parseFloat(document.getElementById('tasaBCV').value) || 1;
+
+            if(!desc || isNaN(montoUSD) || montoUSD <= 0) return;
+
+            let montoVES = 0;
+            if (metodo === "Bolívares (BCV)") montoVES = montoUSD * bcv;
+            
+            historial.push({ id: Date.now(), desc, monto: montoUSD, montoVES, tipo, metodo });
+            document.getElementById('f-desc').value = '';
+            document.getElementById('f-monto').value = '';
+            renderFinanceTable();
+        }
+
+        function removeMov(id) {
+            historial = historial.filter(h => h.id !== id);
+            renderFinanceTable();
+        }
+
+        function renderFinanceTable() {
+            const t = document.getElementById('f-tabla');
+            if (!t) return;
+            t.innerHTML = '';
+            [...historial].reverse().forEach(m => {
+                const color = m.tipo === 'venta' ? 'text-green-400' : 'text-red-400';
+                const signo = m.tipo === 'venta' ? '+' : '-';
+                
+                let displayMonto = `${signo} $${m.monto.toFixed(2)}`;
+                if (m.montoVES > 0) {
+                    displayMonto += `<div class="text-[9px] text-white/40 font-bold uppercase tracking-tighter">(${signo} Bs. ${m.montoVES.toLocaleString('de-DE', {minimumFractionDigits: 2})})</div>`;
+                }
+
+                t.innerHTML += `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="p-3">
+                            <div class="font-black text-white text-xs uppercase">${m.desc}</div>
+                            <div class="text-[9px] text-gold-accent/50 uppercase font-black tracking-widest">${m.tipo} | ${m.metodo}</div>
+                        </td>
+                        <td class="p-3 text-right font-black ${color} text-base">${displayMonto}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="removeMov(${m.id})" class="text-white/20 hover:text-red-500 transition-colors">✕</button>
+                        </td>
+                    </tr>`;
+            });
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const ventas = historial.filter(h => h.tipo === 'venta').reduce((a, b) => a + b.monto, 0);
+            const egresos = historial.filter(h => h.tipo !== 'venta').reduce((a, b) => a + b.monto, 0);
+            const neto = ventas - egresos;
+
+            const bcv = parseFloat(document.getElementById('tasaBCV').value) || 1;
+            const para = parseFloat(document.getElementById('tasaParalela').value) || 1;
+
+            const valNeto = Math.max(0, neto);
+            
+            document.getElementById('dash-flujoNeto').innerText = '$' + neto.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('dash-fondo').innerText = '$' + (valNeto * 0.50).toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('dash-material').innerText = '$' + (valNeto * 0.10).toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('dash-utilidad').innerText = '$' + (valNeto * 0.40).toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('dash-brecha').innerText = '$' + (ventas * ((para/bcv)-1)).toLocaleString('en-US', {minimumFractionDigits: 2});
+
+            updateChart(ventas, egresos);
+        }
+
+        function updateChart(v, o) {
+            const chartCanvas = document.getElementById('balanceChart');
+            if(!chartCanvas) return;
+            if(balanceChart) balanceChart.destroy();
+            const ctx = chartCanvas.getContext('2d');
+            balanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['INGRESOS', 'EGRESOS'],
+                    datasets: [{
+                        data: [v, o],
+                        backgroundColor: ['#C5A059', '#385541'],
+                        borderRadius: 10
+                    }]
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10, weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('res-finalVES').innerText;
+            const input = document.createElement('input');
+            input.setAttribute('value', text);
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const client = document.getElementById('q-cliente').value || "Particular";
+            const piece = document.getElementById('q-pieza').value;
+            const material = document.getElementById('q-material').value;
+            const gramos = document.getElementById('q-gramos').value;
+            const horas = document.getElementById('q-horas').value;
+            const minutos = document.getElementById('q-minutos').value;
+            const bcvUsd = document.getElementById('res-finalUSDBCV').innerText;
+            const bcvVes = document.getElementById('res-finalVES').innerText;
+            const date = new Date().toLocaleDateString('es-VE');
+
+            let startY = 30;
+            if (logoBase64 && logoBase64.trim() !== "") {
+                try {
+                    const lSize = 65; 
+                    doc.addImage(logoBase64, 'PNG', (210-lSize)/2, 15, lSize, lSize);
+                    startY = 90;
+                } catch(e) { startY = 35; }
+            }
+
+            doc.setFont("times", "bold");
+            doc.setFontSize(14);
+            doc.setTextColor(27, 48, 34);
+            doc.text("COTIZACIÓN DE SERVICIOS - 3dproject.ve", 20, startY);
+
+            doc.setFont("times", "normal");
+            doc.setFontSize(12);
+            doc.setTextColor(50, 50, 50);
+            doc.text(`Cliente: ${client}`, 20, startY + 12);
+            doc.text(`Fecha: ${date}`, 20, startY + 20);
+            doc.text(`Proyecto: ${piece}`, 20, startY + 28);
+
+            doc.autoTable({
+                startY: startY + 35,
+                head: [["ESPECIFICACIÓN", "DETALLE"]],
+                body: [
+                    ["Material de Fabricación", material],
+                    ["Peso Estimado (Gr.)", `${gramos}g`],
+                    ["Tiempo de Producción", `${horas}h ${minutos}m`],
+                    ["Inversión Total USD (BCV)", bcvUsd],
+                    ["Monto Total BS (BCV)", bcvVes]
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [27, 48, 34], textColor: 255, halign: 'center', font: "times", fontStyle: 'bold' },
+                styles: { font: "times", fontSize: 11, lineColor: [27, 48, 34], lineWidth: 0.5, halign: 'center', cellPadding: 6, fontStyle: 'bold' }
+            });
+
+            doc.setFont("times", "bold");
+            doc.setFontSize(10);
+            doc.text("Nota: Nuestros precios son a tasa BCV y en la siguiente hoja estarán los términos y condiciones.", 20, doc.lastAutoTable.finalY + 15);
+
+            doc.addPage();
+            doc.setFont("times", "bold");
+            doc.setFontSize(16);
+            doc.text("TÉRMINOS Y CONDICIONES DE VENTA", 105, 25, { align: "center" });
+
+            const rules = [
+                { t: "1. POLÍTICA DE PAGO (70/30):", c: "Para iniciar producción, se requiere el pago del 70% del total presupuestado. El 30% restante deberá cancelarse obligatoriamente al momento de la entrega o envío de las piezas." },
+                { t: "2. AJUSTE CAMBIARIO:", c: "Los montos en Bs. se anclan a tasa BCV. Retrasos mayores a 24h implican recalcular según tasa vigente del día de pago." },
+                { t: "3. RESPONSABILIDAD TÉCNICA Y DISEÑO:", c: "No nos hacemos responsables por fallas en diseños suministrados por el cliente. Ajustes técnicos pueden generar costos extra." },
+                { t: "4. POLÍTICA DE CANCELACIONES:", c: "Una vez iniciada la impresión, no hay reembolsos de anticipos por compromiso de material y energía." },
+                { t: "5. PLAZOS:", c: "Los tiempos son estimados. No nos responsabilizamos por retrasos derivados de fallas eléctricas nacionales o falta de materia prima." }
+            ];
+
+            let curY = 45;
+            rules.forEach(r => {
+                doc.setFont("times", "bold");
+                doc.setFontSize(12);
+                doc.text(r.t, 20, curY);
+                curY += 8;
+                doc.setFont("times", "normal");
+                doc.setFontSize(11);
+                const lns = doc.splitTextToSize(r.c, 170);
+                doc.text(lns, 20, curY);
+                curY += (lns.length * 6) + 10;
+            });
+
+            doc.save(`Cotizacion_3dproject_${client.replace(/\s+/g, '_')}.pdf`);
+        }
+
+        window.onload = () => { 
+            updateExchangeData(); 
